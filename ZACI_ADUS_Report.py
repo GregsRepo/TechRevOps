@@ -5,7 +5,6 @@ import pandas as pd
 from pandas import ExcelWriter
 import datetime as dt
 
-'''Testing a commit'''
 
 ###########################################################################
 SapGui = win32com.client.GetObject("SAPGUI").GetScriptingEngine  

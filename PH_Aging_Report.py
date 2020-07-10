@@ -53,9 +53,12 @@ def load_to_pandas():
     PH_AGING_DF = PH_AGING_DF[cols]
     PH_AGING_DF.drop([0, 0], inplace=True) # Drop first empty rows
 
-
-    PH_AGING_DF.to_excel(DIR + EXCEL, index=False)
-    print(PH_AGING_DF.head())
+    
+    
+    #NEW = PH_AGING_DF[PH_AGING_DF['ZAV User Status'] == 'New' & PH_AGING_DF['Created On'] < today]
+    print(PH_AGING_DF.shape)
+    #PH_AGING_DF.to_excel(DIR + EXCEL, index=False)
+    #print(list(PH_AGING_DF.columns))
 
 ##############################################################################
 if __name__ == "__main__":

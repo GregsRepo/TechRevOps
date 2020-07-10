@@ -20,7 +20,7 @@ end_date = today.strftime('%m/%d/%Y')
 # Set the filepath and filename for the downloaded report
 #FILEPATH = "//du1isi0/order_management/TechRevOps/Reports/SAP_Reports/Report Downloads"
 FILEPATH = "C:/Users/grwillia/OneDrive - Adobe Systems Incorporated/Desktop/SAP_Reports"
-FILENAME = "V_UC_Report_formatted.txt"
+FILENAME = "V_UC_Report_formatted2.txt"
 
 # Output
 DIR = 'C:/Users/grwillia/OneDrive - Adobe Systems Incorporated/Desktop/Python/Testing/SAP/excel_output/'
@@ -48,7 +48,7 @@ def v_uc_report():
     session.findById("wnd[1]/usr/ctxtDY_FILENAME").caretPosition = (11)
     session.findById("wnd[1]/tbar[0]/btn[11]").press()
 
-    #load_to_pandas()
+    load_to_pandas()
 ##############################################################################
 
 def load_to_pandas():
@@ -93,5 +93,5 @@ def load_to_pandas():
 
 ##############################################################################
 if __name__ == "__main__":
-    #v_uc_report()
-    load_to_pandas()
+    v_uc_report()
+    #load_to_pandas()
