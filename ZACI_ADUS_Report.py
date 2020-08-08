@@ -230,7 +230,7 @@ def filter_dataframe(ZACI_ADUS):
     CREDIT_HOLD = CREDIT_HOLD[CREDIT_HOLD['Bill Plan Bill Block'] == '']
     CREDIT_HOLD.to_excel(DIR + 'Credit_Hold.xlsx', index=False)
 
-    
+    # Split dataframe into its sepearte regions
     DX = ZACI_ADUS[ZACI_ADUS['Usage'] == '']
     DME = ZACI_ADUS[ZACI_ADUS['Usage'] != '']
 

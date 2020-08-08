@@ -1,45 +1,37 @@
-#import SAP
 import SAP_Reports as sap
+import Directories as Dir 
 import LoadToPandas as ltp
 import WriteToFile as wtf
 import datetime as dt
 
-
+###########################################################################
 # Get todays date as a datetime object for use in billing report function
 today = dt.date.today()
 
-###########################################################################
-# Set the filepath and filename for the downloaded report
-#FILEPATH = "//du1isi0/order_management/TechRevOps/Reports/SAP_Reports/Report Downloads"
-FILEPATH = "C:/Users/grwillia/OneDrive - Adobe Systems Incorporated/Desktop/SAP_Reports"
-
-# Output
-DIR = 'C:/Users/grwillia/OneDrive - Adobe Systems Incorporated/Desktop/Python/Testing/SAP/excel_output/ZACI/'
 
 ###########################################################################
 
 
-
-# ADUS = SAP.ZACI('ADUS', FILEPATH)
-# ADIR = SAP.ZACI('ADIR', FILEPATH)
+# ADUS = SAP.ZACI('ADUS', Dir.downloads_folder)
+# ADIR = SAP.ZACI('ADIR', Dir.downloads_folder)
 # ADUS = SAP.load_to_pandas('ADUS')
 # print(ADUS.shape)
 
 
 if __name__ == "__main__":
     
-    sap.zaci('ADUS', FILEPATH)
-    sap.zaci('ADIR', FILEPATH)
-    # ph_aging_file = sap.ph_aging(FILEPATH)
-    # ph_status_file = sap.ph_status(FILEPATH)
-    # bart_error_file = sap.bart('1', FILEPATH)
-    # bart_duplicate_file = sap.bart('3', FILEPATH)
-    # bart_no_provision_file = sap.bart('7', FILEPATH)
-    # vfx3_ihc_file = sap.vfx3('I001', FILEPATH)
-    # vfx3_adir_file = sap.vfx3('D001', FILEPATH)
-    # vfx3_adus_file = sap.vfx3('0001', FILEPATH)
-    # v_uc_file = sap.v_uc(FILEPATH)
-    # zisxerror_file = sap.zisxerror(FILEPATH)
+    # sap.zaci('ADUS', Dir.downloads_folder)
+    # sap.zaci('ADIR', Dir.downloads_folder)
+    # ph_aging_file = sap.ph_aging(Dir.downloads_folder)
+    # ph_status_file = sap.ph_status(Dir.downloads_folder)
+    # bart_error_file = sap.bart('1', Dir.downloads_folder)
+    # bart_duplicate_file = sap.bart('3', Dir.downloads_folder)
+    # bart_no_provision_file = sap.bart('7', Dir.downloads_folder)
+    # vfx3_ihc_file = sap.vfx3('I001', Dir.downloads_folder)
+    # vfx3_adir_file = sap.vfx3('D001', Dir.downloads_folder)
+    # vfx3_adus_file = sap.vfx3('0001', Dir.downloads_folder)
+    # v_uc_file = sap.v_uc(Dir.downloads_folder)
+    # zisxerror_file = sap.zisxerror(Dir.downloads_folder)
 
     
     # print(ph_aging_file)
@@ -53,32 +45,30 @@ if __name__ == "__main__":
     # print(v_uc_file)
     # print(zisxerror_file)
     
-    # zaci_adus_df = ltp.zaci_dataframe('ADUS', FILEPATH)
-    # zaci_adir_df = ltp.zaci_dataframe('ADIR', FILEPATH)
-    # ph_status_file = "PH_Status_Report.txt"
-    # ph_aging_file = "PH_Aging_Report.txt"
-    # ph_status_dataframes = ltp.ph_status_dataframe(FILEPATH, ph_status_file)
-    # ph_status_df = ph_status_dataframes[4]
-    # ph_aging_dataframes = ltp.ph_aging_dataframe(FILEPATH, ph_aging_file, ph_status_df)
-    # bart_error_df = ltp.bart_dataframe(FILEPATH, bart_error_file)
-    # bart_duplicate_df = ltp.bart_dataframe(FILEPATH, bart_duplicate_file)
-    # bart_no_provision_df = ltp.bart_dataframe(FILEPATH, bart_no_provision_file)
-    # vfx3_ihc_df = ltp.vfx3_dataframe(FILEPATH, vfx3_ihc_file)
-    # vfx3_adir_df = ltp.vfx3_dataframe(FILEPATH, vfx3_adir_file)
-    # vfx3_adus_df = ltp.vfx3_dataframe(FILEPATH, vfx3_adus_file)
-    # v_uc_df = ltp.vfx3_dataframe(FILEPATH, v_uc_file) 
-    # zisxerror_df = ltp.zisexerror_pandas(FILEPATH, zisxerror_file)
+    '''Might chnage these to look at downlaod folder for relevant files rather than use the variables above'''
+    # zaci_adus_df = ltp.zaci_dataframe('ADUS', Dir.downloads_folder)
+    # zaci_adir_df = ltp.zaci_dataframe('ADIR', Dir.downloads_folder)
+    # dx, dme, credit_hold = ltp.merge_zaci_dataframes(zaci_adir_df, zaci_adus_df, Dir.zaci_folder)
+    ph_status_dataframes = ltp.ph_status_dataframe(Dir.downloads_folder, Dir.prov_excel, Dir.ph_status_file)
+    JOIN = ph_status_dataframes[5]
+    ph_aging_dataframes = ltp.ph_aging_dataframe(Dir.downloads_folder, Dir.ph_aging_file, JOIN)
+    # bart_error_df = ltp.bart_dataframe(Dir.bart_error_file)
+    # bart_duplicate_df = ltp.bart_dataframe(Dir.bart_duplicate_file)
+    # bart_no_provision_df = ltp.bart_dataframe(Dir.bart_no_provision_file)
+    # vfx3_ihc_df = ltp.vfx3_dataframe( Dir.vfx3_ihc_file)
+    # vfx3_adir_df = ltp.vfx3_dataframe(Dir.vfx3_adir_file)
+    # vfx3_adus_df = ltp.vfx3_dataframe(Dir.vfx3_adus_file)
+    # v_uc_df = ltp.vfx3_dataframe(Dir.v_uc_file) 
+    # zisxerror_df = ltp.zisexerror_dataframe(Dir.zisxerror_file)
 
     
-    # wtf.excel(zaci_adus_df, DIR, 'ZACI_Report.xlsx')
-    # wtf.excel(ph_aging_df, DIR, ph_aging_file[:-4] + '.xlsx')
-    # wtf.excel(ph_status_df, DIR, ph_status_file[:-4] + '.xlsx')
-    # wtf.ph_to_excel(ph_status_dataframes, ph_aging_dataframes, DIR)
-    # wtf.excel(bart_error_df, DIR, bart_error_file[:-4] + '.xlsx')
-    # wtf.excel(bart_duplicate_df, DIR, bart_duplicate_file[:-4] + '.xlsx')
-    # wtf.excel(bart_no_provision_df, DIR, bart_no_provision_file[:-4] + '.xlsx')
-    # wtf.excel(vfx3_ihc_df, DIR, vfx3_ihc_file[:-4] + '.xlsx')
-    # wtf.excel(vfx3_adir_df, DIR, vfx3_adir_file[:-4] + '.xlsx')
-    # wtf.excel(vfx3_adus_df, DIR, vfx3_adus_file[:-4] + '.xlsx')
-    # wtf.excel(v_uc_df, DIR, v_uc_file[:-4] + '.xlsx') 
-    # wtf.excel(zisxerror_df, DIR, zisxerror_file[:-4] + '.xlsx')
+    # wtf.zaci_to_excel(dx, dme, credit_hold, Dir.zaci_folder)
+    wtf.ph_to_excel(ph_status_dataframes, ph_aging_dataframes, Dir.provisioning_folder)
+    # wtf.excel(bart_error_df, Dir.output_folder, Dir.bart_error_file[72:-4] + '.xlsx')
+    # wtf.excel(bart_duplicate_df, Dir.output_folder, Dir.bart_duplicate_file[72:-4] + '.xlsx')
+    # wtf.excel(bart_no_provision_df, Dir.output_folder, Dir.bart_no_provision_file[72:-4] + '.xlsx')
+    # wtf.excel(vfx3_ihc_df, Dir.output_folder, Dir.vfx3_ihc_file[72:-4] + '.xlsx')
+    # wtf.excel(vfx3_adir_df, Dir.output_folder, Dir.vfx3_adir_file[72:-4] + '.xlsx')
+    # wtf.excel(vfx3_adus_df, Dir.output_folder, Dir.vfx3_adus_file[72:-4] + '.xlsx')
+    # wtf.excel(v_uc_df, Dir.output_folder, Dir.v_uc_file[72:-4] + '.xlsx') 
+    # wtf.excel(zisxerror_df, Dir.output_folder, Dir.zisxerror_file[72:-4] + '.xlsx')

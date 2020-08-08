@@ -143,11 +143,10 @@ def vfx3(report, FILEPATH):
         session.findById("wnd[1]/usr/ctxtDY_FILENAME").caretPosition = (16)
         session.findById("wnd[1]/tbar[0]/btn[11]").press()
     except:
-        print('No data found for specified date range')
         # Write an empty file so that old data is overwritten
         with open(FILEPATH + '/' + FILENAME, 'w') as empty_csv:
+            empty_csv = 'No data found for specified date range'
             print(empty_csv)
-            pass
     
     return FILENAME
 
@@ -241,11 +240,17 @@ def zisxerror(FILEPATH):
     session.findById("wnd[0]/usr/txtMAX_SEL").caretPosition = (10)
     session.findById("wnd[0]/tbar[1]/btn[8]").press()
     session.findById("wnd[0]/mbar/menu[1]/menu[5]").select()
-    session.findById("wnd[1]/tbar[0]/btn[0]").press()
-    session.findById("wnd[1]/usr/ctxtDY_PATH").text = FILEPATH
-    session.findById("wnd[1]/usr/ctxtDY_FILENAME").text = FILENAME
-    session.findById("wnd[1]/usr/ctxtDY_FILENAME").caretPosition = (20)
-    session.findById("wnd[1]/tbar[0]/btn[11]").press()
+    try:
+        session.findById("wnd[1]/tbar[0]/btn[0]").press()
+        session.findById("wnd[1]/usr/ctxtDY_PATH").text = FILEPATH
+        session.findById("wnd[1]/usr/ctxtDY_FILENAME").text = FILENAME
+        session.findById("wnd[1]/usr/ctxtDY_FILENAME").caretPosition = (20)
+        session.findById("wnd[1]/tbar[0]/btn[11]").press()
+    except:
+        # Write an empty file so that old data is overwritten
+        with open(FILEPATH + '/' + FILENAME, 'w') as empty_csv:
+            empty_csv = 'No data found for specified date range'
+            print(empty_csv)
 
     return FILENAME
 
