@@ -38,13 +38,13 @@ def zaci_dataframe(REGION, FILEPATH):
                     # drop the empty 'unnamed' columns
                     cols = [c for c in ZACI_DF.columns if c.lower()[:7] != 'unnamed'] 
                     ZACI_DF = ZACI_DF[cols]
-                    # drop the the first 2 rows from ZACI_DF and retrieve every 2nd row and then reset index
+                    # drop the first 2 rows from ZACI_DF and retrieve every 2nd row and then reset index
                     ZACI_DF = ZACI_DF.drop([0, 1])
                     ZACI_DF = ZACI_DF.iloc[::2]
                     ZACI_DF = ZACI_DF.reset_index(drop=True)
                 else:
                     ZACI_DF1 = pd.read_csv(FILEPATH + '/' + FILENAME, skiprows=3, sep='|', engine='python')
-                    # drop the the first 2 rows from ZACI_DF and retrieve every 2nd row and then reset index
+                    # drop the first 2 rows ZACI_DF and retrieve every 2nd row and then reset index
                     ZACI_DF1 = ZACI_DF1.drop([1, 2])
                     ZACI_DF1.columns = ZACI_DF1.iloc[0]
                     ZACI_DF1 = ZACI_DF1.iloc[1::2]
@@ -160,6 +160,7 @@ def merge_zaci_dataframes(ZACI_ADIR, ZACI_ADUS, ZACI_FOLDER):
     CREDIT_HOLD = CREDIT_HOLD[CREDIT_HOLD['Item Bill Block'] == '']
     CREDIT_HOLD = CREDIT_HOLD[CREDIT_HOLD['Bill Plan Bill Block'] == '']
     CREDIT_HOLD.to_excel(ZACI_FOLDER + 'Credit_Hold.xlsx', index=False)
+    CREDIT_HOLD.drop(['Notes', 'Comments'], axis=1, inplace=True)
 
     # Split complete dataframe by product domain
     DX = ZACI_COMPLETE[ZACI_COMPLETE['Usage'] == '']
@@ -247,13 +248,7 @@ def ph_status_dataframe(FILEPATH, PROV_EXCEL, PH_STATUS):
     PH_STATUS_DF['Sales Doc.'] = pd.to_numeric(PH_STATUS_DF['Sales Doc.']) 
     PH_STATUS_DF = pd.merge(STATUS_COMMENTS, PH_STATUS_DF, on='Sales Doc.', how='right') # Merge previous notes with new dataframe based on Sales Doc
     
-
-    # print('Status New: ', NEW.shape)
-    # print('Status PROV_IN_PROGRESS: ', PROV_IN_PROGRESS.shape)
-    # print('Status BOOKING_COMPLETE: ', BOOKING_COMPLETE.shape)
-    # print('Status PROVIONING_ERROR: ', PROVIONING_ERROR.shape)
-    # print('Status PH_STATUS_DF: ', PH_STATUS_DF.shape)
-
+    
     return BOOKING_COMPLETE, PROV_IN_PROGRESS, NEW, PROVIONING_ERROR, PH_STATUS_DF, JOIN
 
 ##############################################################################
@@ -274,8 +269,6 @@ def ph_aging_dataframe(FILEPATH, PH_AGING, JOIN):
                             'New', 'Booking Complete', 'Provisioning in Progress', 'Provisioning Completed', 'Provisioning Error',
                             'Total No. of Days', 'Create Date(ZCC)', 'Create Date(ZAV)', 'Last Status Date']
 
-    
-    print(PH_AGING_DF.shape)
     # Join data taken from PH Status Report and combine it wiht DF to create the PH Aging Report
     PH_AGING_DF = pd.merge(PH_AGING_DF, JOIN)
 
@@ -350,12 +343,6 @@ def ph_aging_dataframe(FILEPATH, PH_AGING, JOIN):
     # PH_AGING_DF = pd.merge(PH_AGING_DF, AGING_COMMENTS, on='Sales Doc.', how='left') # Merge previous notes with new dataframe based on Source Transaction ID
     
 
-    print('Aging New: ', NEW.shape)
-    print('Aging Booking Complete: ', BOOKING_COMPLETE.shape)
-    print('Aging Provisioning in Progress: ', PROV_IN_PROGRESS.shape)
-    print('Aging PROVIONING_ERROR: ', PROVIONING_ERROR.shape)
-    print('PH_AGING_DF: ', PH_AGING_DF.shape)
-
     return BOOKING_COMPLETE, PROV_IN_PROGRESS, NEW, PROVIONING_ERROR, PH_AGING_DF
 
 ##############################################################################
@@ -368,7 +355,16 @@ def bart_dataframe(FILENAME):
     BART_DF = BART_DF[cols]
     BART_DF.drop([0, 0], inplace=True) # Drop first empty rows
 
-    return BART_DF
+    #Strip whitespace from column headers
+    BART_DF.rename(columns=lambda x: x.strip(), inplace=True)
+    #Create subset datafarme with order number, item number, and region
+    effected_orders = BART_DF[['Sales Doc.', 'Item#', 'Region']]
+    # Convert Sales Doc and Item# to int
+    effected_orders[['Sales Doc.', 'Item#']] = effected_orders[['Sales Doc.', 'Item#']].astype('Int64')
+    # Drop last row as it is just dashes (----)
+    effected_orders = effected_orders[:-1]
+
+    return BART_DF, effected_orders
 
 ##############################################################################
 def vfx3_dataframe(FILENAME):
@@ -382,9 +378,11 @@ def vfx3_dataframe(FILENAME):
         cols = [c for c in VFX3_DF.columns if c.lower()[:7] != 'unnamed'] # drops the empty unnamed columns
         VFX3_DF = VFX3_DF[cols]
         VFX3_DF.drop([0, 0], inplace=True) # Drop first empty rows
-        
+    
 
-    return VFX3_DF
+    number_of_entries = len(VFX3_DF.index)-1
+ 
+    return VFX3_DF, str(number_of_entries)
 
 ##############################################################################
 def zisexerror_dataframe(FILENAME):
@@ -395,12 +393,21 @@ def zisexerror_dataframe(FILENAME):
         d = {'Data': ['No data for input range']}
         ZISXERROR_DF = pd.DataFrame(data=d)
     else:
-        ZISXERROR_DF = pd.read_csv(FILEPATH + '/' + FILENAME, skiprows=3, sep='|', engine='python')
+        ZISXERROR_DF = pd.read_csv(FILENAME, skiprows=3, sep='|', engine='python')
         cols = [c for c in ZISXERROR_DF.columns if c.lower()[:7] != 'unnamed'] # drops the empty unnamed columns
         ZISXERROR_DF = ZISXERROR_DF[cols]
         ZISXERROR_DF.drop([0, 0], inplace=True) # Drop first empty rows
     
-    return ZISXERROR_DF
+    #Strip whitespace from column headers
+    ZISXERROR_DF.rename(columns=lambda x: x.strip(), inplace=True)
+    #Create subset datafarme with order number and item number
+    effected_orders = ZISXERROR_DF[['Sales Document', 'Item']]
+    # Convert Sales Doc and Item# to int
+    effected_orders[['Sales Document', 'Item']] = effected_orders[['Sales Document', 'Item']].astype('Int64')
+    # Drop last row as it is just dashes (----)
+    effected_orders = effected_orders[:-1]
+
+    return ZISXERROR_DF, effected_orders
 
 ##############################################################################
 
@@ -439,9 +446,14 @@ def vuc_dataframe(FILENAME):
     V_UC_DF = V_UC_DF[['Doc Number','Doc Type','Item No.','Short Description','General', 'Delivery', 'BillingDoc', 'Price', \
         'Goods mov.', 'Pck/putaw.', 'Pack']]
     
-    return vuc_dataframe
+    #Strip whitespace from column headers
+    V_UC_DF.rename(columns=lambda x: x.strip(), inplace=True)
+    #Create subset datafarme with order number and item number
+    effected_orders = V_UC_DF[['Doc Number', 'Item No.', 'Short Description']]
+    # Convert Sales Doc and Item# to int
+    effected_orders['Item No.'] = effected_orders['Item No.'].astype('Int64')
+
+
+    return V_UC_DF, effected_orders
 
 ##############################################################################
-# if __name__ == "__main__":
-    # ph_aging_dataframe("C:/Users/grwillia/OneDrive - Adobe Systems Incorporated/Desktop/SAP_Reports", "PH_Aging_Report.txt", "PH_Status_Report.txt")
-#     ph_status_dataframe("C:/Users/grwillia/OneDrive - Adobe Systems Incorporated/Desktop/SAP_Reports", "PH_Status_Report.txt")
