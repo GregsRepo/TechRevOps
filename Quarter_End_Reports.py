@@ -5,12 +5,24 @@ import LoadToPandas as ltp
 import WriteToFile as wtf
 import Dataframe_Length
 import EmailMessage
-import QEndEmail
+import QEndEmail, HtmlEmail
 import datetime as dt
 
 
+'''TO DO: Look at how to handle when the Provisioning Report "Status Review" tab does not write out to excel. 
+When this happens it fails to write out the ph aging data and the next time the script is run it fails completely
+because there is no status review tab to read previous comments from. Not a major concern as Provisioning Aging
+data is not soemthing we are too concerned with and the file can be corrected before running the script again.
+
+For improvements, you want to look at sending an e-amil seperately for the credit file and attaching files to 
+both the quarter end report and credit e-mail
+
+Might also look at general excpetion handling as bugs are discovered'''
+
 ###############################################################################################################################
 def LogIn():
+    # Global value to take the users ldap at login and pass it to the email fucntion at end of this script
+    global ldap
     ldap = input('Please enter your LDAP or enter 0 to exit: ').lower()
     ListOfAuthUsers = ['grwillia','cinnide','tporter','tracyl','dpurcell', 'gholbroo']
     if ldap == '0':
@@ -127,7 +139,7 @@ def call_load_to_pandas():
     metrics_for_email.append(vfx3_adus_count)
 
     # Create dataframe for the V_UC Report by calling the LoadToPandas function 
-    print('Loading V_UCreport...')
+    print('Loading V_UC report...')
     v_uc_df, v_uc_email_df = ltp.vuc_dataframe(Dir.v_uc_file) 
     metrics_for_email.append(v_uc_email_df)
 
@@ -157,12 +169,11 @@ def call_load_to_pandas():
     metrics_for_email.append(ph_aging_counts)
 
     # Pass in the dataframe metrics and call the email function
-    QEndEmail.send_email(metrics_for_email) 
+    html = HtmlEmail.html_for_email(metrics_for_email)
+    QEndEmail.send_email(html, ldap) 
 
 ###########################################################################
 if __name__ == "__main__":
-    #LogIn()
-    get_menu()
+    LogIn()
+    #get_menu()
 
-    #call_load_to_pandas()
-    #run_sap_reports()

@@ -379,7 +379,6 @@ def vfx3_dataframe(FILENAME):
         VFX3_DF = VFX3_DF[cols]
         VFX3_DF.drop([0, 0], inplace=True) # Drop first empty rows
     
-
     number_of_entries = len(VFX3_DF.index)-1
  
     return VFX3_DF, str(number_of_entries)
@@ -390,22 +389,22 @@ def zisexerror_dataframe(FILENAME):
     # If empty file create empty dataframe
     handle = FILENAME
     if os.stat(handle).st_size == 0:
-        d = {'Data': ['No data for input range']}
+        d = {'Sales Document': ['None'], 'Item': [0] }
+        # Create 2 empty dataframes. 1 gets written to excel and 1 - effected_orders - gets written to the user email
+        effected_orders = pd.DataFrame(data=d)
         ZISXERROR_DF = pd.DataFrame(data=d)
     else:
         ZISXERROR_DF = pd.read_csv(FILENAME, skiprows=3, sep='|', engine='python')
         cols = [c for c in ZISXERROR_DF.columns if c.lower()[:7] != 'unnamed'] # drops the empty unnamed columns
         ZISXERROR_DF = ZISXERROR_DF[cols]
         ZISXERROR_DF.drop([0, 0], inplace=True) # Drop first empty rows
-    
-    #Strip whitespace from column headers
-    ZISXERROR_DF.rename(columns=lambda x: x.strip(), inplace=True)
-    #Create subset datafarme with order number and item number
-    effected_orders = ZISXERROR_DF[['Sales Document', 'Item']]
-    # Convert Sales Doc and Item# to int
-    effected_orders[['Sales Document', 'Item']] = effected_orders[['Sales Document', 'Item']].astype('Int64')
-    # Drop last row as it is just dashes (----)
-    effected_orders = effected_orders[:-1]
+        ZISXERROR_DF.rename(columns=lambda x: x.strip(), inplace=True) #Strip whitespace from column headers
+        #Create subset dataframe with order number and item number for emailing to the user
+        effected_orders = ZISXERROR_DF[['Sales Document', 'Item']]
+        # Convert Sales Doc and Item# to int
+        effected_orders[['Sales Document', 'Item']] = effected_orders[['Sales Document', 'Item']].astype('Int64')
+        # Drop last row as it is just dashes (----)
+        effected_orders = effected_orders[:-1]
 
     return ZISXERROR_DF, effected_orders
 
@@ -451,7 +450,10 @@ def vuc_dataframe(FILENAME):
     #Create subset datafarme with order number and item number
     effected_orders = V_UC_DF[['Doc Number', 'Item No.', 'Short Description']]
     # Convert Sales Doc and Item# to int
-    effected_orders['Item No.'] = effected_orders['Item No.'].astype('Int64')
+    try:
+        effected_orders = effected_orders.astype({'Doc Number': 'Int64', 'Item No.': 'Int64'})
+    except TypeError as e:
+        print(e)
 
 
     return V_UC_DF, effected_orders

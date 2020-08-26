@@ -37,8 +37,8 @@ def zaci(REGION, FILEPATH):
         session.findById("wnd[0]/usr/ctxtS_BUKRS-LOW").text = REGION
         session.findById("wnd[0]/usr/ctxtS_SUBPRO-LOW").text = "ZCTR"
         session.findById("wnd[0]/usr/ctxtS_SUBPRO-HIGH").text = "ZSUB"
-        session.findById("wnd[0]/usr/ctxtS_DT_O-LOW").text = start_date
-        session.findById("wnd[0]/usr/ctxtS_DT_O-HIGH").text = end_date
+        session.findById("wnd[0]/usr/ctxtS_BITDT-LOW").text = start_date
+        session.findById("wnd[0]/usr/ctxtS_BITDT-HIGH").text = end_date
         session.findById("wnd[0]/usr/chkP_BILL").setFocus()
         session.findById("wnd[0]/usr/chkP_BILL").selected = "true"
         session.findById("wnd[0]/usr/chkP_BILL_N").setFocus
