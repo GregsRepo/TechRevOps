@@ -49,7 +49,7 @@ def zaci_dataframe(REGION, FILEPATH):
                     ZACI_DF1.columns = ZACI_DF1.iloc[0]
                     ZACI_DF1 = ZACI_DF1.iloc[1::2]
                     ZACI_DF1 = ZACI_DF1.reset_index(drop=True)
-                    # Concatenate the the 2 dataframes to give us one legible half of the report
+                    # Concatenate the 2 dataframes to give us one legible half of the report
                     HALF = pd.concat([ZACI_DF, ZACI_DF1], axis=1, sort=False)
             # Drop Nan columns and rows and strip whitespace from dataframes before concatenating (otherwise we get misaligned shape error)
             HALF.dropna(axis = 1, how ='all', inplace = True) 
@@ -64,14 +64,7 @@ def zaci_dataframe(REGION, FILEPATH):
 ##############################################################################
 def merge_zaci_dataframes(ZACI_ADIR, ZACI_ADUS, ZACI_FOLDER):
     
-    '''Change this to take in both dataframe regions and concatenate before performing below operations.
-    Will also need to read in DX and DME sheet'''
 
-    # '''Will probably put these directories in their own module and pass them in'''
-    # DIR = 'C:/Users/grwillia/OneDrive - Adobe Systems Incorporated/Desktop/Python/Testing/SAP/excel_output/ZACI/'
-    # EXCEL = "ZACI_Report.xlsx"
-
-    '''Might need to convert some data points to datetime objects similar to PH dataframes'''
     # Get todays date as a datetime object for use in billing report function
     today = dt.date.today()
     todays_date = today.strftime('%m/%d/%Y') 
@@ -155,11 +148,10 @@ def merge_zaci_dataframes(ZACI_ADIR, ZACI_ADUS, ZACI_FOLDER):
 
     
     # Create Credit Hold dataframe for items on credit hold (i.e. no billing blocks)
-    CREDIT_HOLD = ZACI_COMPLETE[ZACI_COMPLETE['Credit Hold'] == 'Y']
-    CREDIT_HOLD = CREDIT_HOLD[CREDIT_HOLD['Header Bill Block'] == '']
+    CREDIT_HOLD = ZACI_COMPLETE[(ZACI_COMPLETE['Credit Hold'] == 'Y') | (ZACI_COMPLETE['Header Bill Block'].str.contains('13-Final'))] 
+    CREDIT_HOLD = CREDIT_HOLD[(CREDIT_HOLD['Header Bill Block'] == '') | (CREDIT_HOLD['Header Bill Block'].str.contains('13-Final')) ]
     CREDIT_HOLD = CREDIT_HOLD[CREDIT_HOLD['Item Bill Block'] == '']
     CREDIT_HOLD = CREDIT_HOLD[CREDIT_HOLD['Bill Plan Bill Block'] == '']
-    CREDIT_HOLD.to_excel(ZACI_FOLDER + 'Credit_Hold.xlsx', index=False)
     CREDIT_HOLD.drop(['Notes', 'Comments'], axis=1, inplace=True)
 
     # Split complete dataframe by product domain
@@ -269,7 +261,7 @@ def ph_aging_dataframe(FILEPATH, PH_AGING, JOIN):
                             'New', 'Booking Complete', 'Provisioning in Progress', 'Provisioning Completed', 'Provisioning Error',
                             'Total No. of Days', 'Create Date(ZCC)', 'Create Date(ZAV)', 'Last Status Date']
 
-    # Join data taken from PH Status Report and combine it wiht DF to create the PH Aging Report
+    # Join data taken from PH Status Report and combine it with DF to create the PH Aging Report
     PH_AGING_DF = pd.merge(PH_AGING_DF, JOIN)
 
     # Add a Notes column at index 0
@@ -278,7 +270,7 @@ def ph_aging_dataframe(FILEPATH, PH_AGING, JOIN):
     # Trim whitespace from all cells
     PH_AGING_DF = PH_AGING_DF.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
 
-    # Filter out rejected orders. Used 'ject' becuase we can have mixture of lower/upper case as well as ZAV Rejected
+    # Filter out rejected orders. Used 'ject' becuase we can have mixture of lower/upper case as well as "ZAV Rejected"
     PH_AGING_DF = PH_AGING_DF[~PH_AGING_DF['Opportunity ID'].str.contains("ject", na=False)]
     PH_AGING_DF = PH_AGING_DF[~PH_AGING_DF['Opportunity ID'].str.contains("JECT", na=False)]
 
@@ -288,7 +280,7 @@ def ph_aging_dataframe(FILEPATH, PH_AGING, JOIN):
     PH_AGING_DF['Contract Start Date'] = pd.to_datetime(PH_AGING_DF['Contract Start Date'])
     PH_AGING_DF['Create Date(ZAV)'] = pd.to_datetime(PH_AGING_DF['Create Date(ZAV)'])
     
-    # Create dataframe for ZAV User Status equals New, Booking Complete, Prov in Porgress, or Prov Error orders
+    # Create dataframes for ZAV User Status equals New, Booking Complete, Prov in Porgress, or Prov Error orders
     NEW = PH_AGING_DF[PH_AGING_DF['ZAV User Status'] == 'New']
     BOOKING_COMPLETE = PH_AGING_DF[PH_AGING_DF['ZAV User Status'] == 'Booking Complete']
     PROV_IN_PROGRESS = PH_AGING_DF[PH_AGING_DF['ZAV User Status'] == 'Provisioning in Progress']
@@ -363,6 +355,7 @@ def bart_dataframe(FILENAME):
     effected_orders[['Sales Doc.', 'Item#']] = effected_orders[['Sales Doc.', 'Item#']].astype('Int64')
     # Drop last row as it is just dashes (----)
     effected_orders = effected_orders[:-1]
+    effected_orders = effected_orders.replace(np.nan, '', regex=True)
 
     return BART_DF, effected_orders
 
@@ -452,10 +445,41 @@ def vuc_dataframe(FILENAME):
     # Convert Sales Doc and Item# to int
     try:
         effected_orders = effected_orders.astype({'Doc Number': 'Int64', 'Item No.': 'Int64'})
+        effected_orders = effected_orders.replace(np.nan, '', regex=True)
     except TypeError as e:
         print(e)
+
 
 
     return V_UC_DF, effected_orders
 
 ##############################################################################
+def p_status_dataframe(FILENAME):
+
+    # If empty file create empty dataframe
+    handle = FILENAME
+    if os.stat(handle).st_size == 0:
+        d = {'Sales Document': ['None'], 'Item': [0] }
+        # Create 2 empty dataframes. 1 gets written to excel and 1 - effected_orders - gets written to the user email
+        effected_orders = pd.DataFrame(data=d)
+        P_STATUS_DF = pd.DataFrame(data=d)
+    else:
+        P_STATUS_DF = pd.read_csv(FILENAME, skiprows=3, sep='|', engine='python')
+        cols = [c for c in P_STATUS_DF.columns if c.lower()[:7] != 'unnamed'] # drops the empty unnamed columns
+        P_STATUS_DF = P_STATUS_DF[cols]
+        P_STATUS_DF.drop([0, 0], inplace=True) # Drop first empty rows
+        #P_STATUS_DF = P_STATUS_DF[:-1] # Drop last empty row
+        P_STATUS_DF.rename(columns=lambda x: x.strip(), inplace=True) #Strip whitespace from column headers
+        #Create subset dataframe with order number and item number for emailing to the user
+        effected_orders = P_STATUS_DF['Sales Document']
+        # Convert Sales Doc and Item# to int
+        effected_orders['Sales Document'] = effected_orders['Sales Document'].astype('Int64')
+        #effected_orders = effected_orders.astype({'Sales Document': 'Int64'})
+        # Drop last row as it is just dashes (----)
+        effected_orders = effected_orders[:-1]
+
+
+    return P_STATUS_DF, effected_orders
+
+##############################################################################
+
