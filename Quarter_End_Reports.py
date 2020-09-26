@@ -10,21 +10,11 @@ import QEndEmail, HtmlEmail
 import datetime as dt
 
 
-'''TO DO: Look at how to handle when the Provisioning Report "Status Review" tab does not write out to excel. 
-When this happens it fails to write out the ph aging data and the next time the script is run it fails completely
-because there is no status review tab to read previous comments from. Not a major concern as Provisioning Aging
-data is not soemthing we are too concerned with and the file can be corrected before running the script again.
-
-For improvements, you want to look at sending an e-mail seperately for the credit file and attaching files to 
-both the quarter end report and credit e-mail
-
-Might also look at general excpetion handling as bugs are discovered'''
-
 ###############################################################################################################################
 def LogIn():
     # Global value to take the users ldap at login and pass it to the email fucntion at end of this script
     global ldap
-    ldap = input('Please enter your LDAP or enter 0 to  ').lower()
+    ldap = input('Please enter your LDAP or enter 0 to exit: ').lower()
     ListOfAuthUsers = ['grwillia','cinnide','tporter','tracyl','dpurcell', 'gholbroo']
     if ldap == '0':
         print('Exit program')
@@ -355,3 +345,4 @@ def send_emails(metrics_for_email):
 ###########################################################################
 if __name__ == "__main__":
     LogIn()
+    
