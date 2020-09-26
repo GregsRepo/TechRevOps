@@ -8,9 +8,6 @@ import datetime as dt
 pd.options.mode.chained_assignment = None  # default='warn'
 
 ##############################################################################
-# class zaci_dataframe():
-
-#     def __init__(self):
 def zaci_dataframe(REGION, FILEPATH):
 
         '''The SAP Report that this function takes as parameter is split into 2 halfs so that SAP does
@@ -161,8 +158,7 @@ def merge_zaci_dataframes(ZACI_ADIR, ZACI_ADUS, ZACI_FOLDER):
     return DX, DME, CREDIT_HOLD
 
 ##############################################################################
-
-def ph_status_dataframe(FILEPATH, PROV_EXCEL, PH_STATUS):
+def ph_status_dataframe(PROV_EXCEL, PH_STATUS):
 
     # Read PH Status data into dataframe
     PH_STATUS_DF = pd.read_csv(PH_STATUS, skiprows=3, sep='|', engine='python')
@@ -181,8 +177,7 @@ def ph_status_dataframe(FILEPATH, PROV_EXCEL, PH_STATUS):
 
     # Trim whitespace from all cells
     PH_STATUS_DF = PH_STATUS_DF.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
-
-    #PH_STATUS_DF.to_excel(FILEPATH + '/' + 'status.xlsx', index=False)
+    print('Original file: ', PH_STATUS_DF.shape)
 
     # Filter out rejected orders. Used 'ject' becuase we can have mixture of lower/upper case as well as ZAV Rejected
     PH_STATUS_DF = PH_STATUS_DF[~PH_STATUS_DF['Opportunity ID'].str.contains("ject", na=False)]
@@ -190,9 +185,10 @@ def ph_status_dataframe(FILEPATH, PROV_EXCEL, PH_STATUS):
 
     # Filter out User Status = Canceled
     PH_STATUS_DF = PH_STATUS_DF[~PH_STATUS_DF['User Status'].str.contains("Canceled", na=False)]
+    print('Removed rejected and canceled orders: ', PH_STATUS_DF.shape)
 
     # Create new dataframe at this point for joining with Aging
-    JOIN = PH_STATUS_DF[['Opportunity ID', 'ZAV RFP Date', 'ZAV User Status', 'Created On', 'Header Block', 
+    JOIN = PH_STATUS_DF[['Sales Doc.', 'Opportunity ID', 'ZAV RFP Date', 'ZAV User Status', 'Created On', 'Header Block', 
                             'Contract Start Date', 'Contract End Date']]
 
     # Change these columns to datetime objects
@@ -238,17 +234,17 @@ def ph_status_dataframe(FILEPATH, PROV_EXCEL, PH_STATUS):
     # Convert Sales Doc. from object to number for the Join below
     STATUS_COMMENTS['Sales Doc.'] = pd.to_numeric(STATUS_COMMENTS['Sales Doc.'])
     PH_STATUS_DF['Sales Doc.'] = pd.to_numeric(PH_STATUS_DF['Sales Doc.']) 
-    PH_STATUS_DF = pd.merge(STATUS_COMMENTS, PH_STATUS_DF, on='Sales Doc.', how='right') # Merge previous notes with new dataframe based on Sales Doc
+    # Join the status comments to the ph status dataframe, dropping the duplicates from status comments dataframe
+    PH_STATUS_DF = PH_STATUS_DF.merge(STATUS_COMMENTS.drop_duplicates(subset=['Sales Doc.']), how='left')
     
-    
+
     return BOOKING_COMPLETE, PROV_IN_PROGRESS, NEW, PROVIONING_ERROR, PH_STATUS_DF, JOIN
 
 ##############################################################################
-
-def ph_aging_dataframe(FILEPATH, PH_AGING, JOIN):
+def ph_aging_dataframe(PROV_EXCEL, PH_AGING, JOIN):
 
     # Read PH Aging into dataframe
-    PH_AGING_DF = pd.read_csv(PH_AGING, skiprows=3, sep='|', engine='python')
+    PH_AGING_DF = pd.read_csv(PH_AGING, skiprows=3, sep='|', thousands=',', engine='python')
 
     # Drop the empty unnamed columns from PH Aging dataframe
     cols = [c for c in PH_AGING_DF.columns if c.lower()[:7] != 'unnamed'] 
@@ -261,8 +257,6 @@ def ph_aging_dataframe(FILEPATH, PH_AGING, JOIN):
                             'New', 'Booking Complete', 'Provisioning in Progress', 'Provisioning Completed', 'Provisioning Error',
                             'Total No. of Days', 'Create Date(ZCC)', 'Create Date(ZAV)', 'Last Status Date']
 
-    # Join data taken from PH Status Report and combine it with DF to create the PH Aging Report
-    PH_AGING_DF = pd.merge(PH_AGING_DF, JOIN)
 
     # Add a Notes column at index 0
     PH_AGING_DF.insert(loc=0, column='Notes', value='')
@@ -270,21 +264,37 @@ def ph_aging_dataframe(FILEPATH, PH_AGING, JOIN):
     # Trim whitespace from all cells
     PH_AGING_DF = PH_AGING_DF.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
 
-    # Filter out rejected orders. Used 'ject' becuase we can have mixture of lower/upper case as well as "ZAV Rejected"
-    PH_AGING_DF = PH_AGING_DF[~PH_AGING_DF['Opportunity ID'].str.contains("ject", na=False)]
-    PH_AGING_DF = PH_AGING_DF[~PH_AGING_DF['Opportunity ID'].str.contains("JECT", na=False)]
+    # Filter out rejected orders.
+    PH_AGING_DF = PH_AGING_DF[~PH_AGING_DF['Opportunity ID'].str.contains("reject", na=False)]
+    PH_AGING_DF = PH_AGING_DF[~PH_AGING_DF['Opportunity ID'].str.contains("REJECT", na=False)]
+    PH_AGING_DF = PH_AGING_DF[~PH_AGING_DF['Opportunity ID'].str.contains("Reject", na=False)]
+    
+    # Filter out Provisioning Completed = Yes or NA
+    PH_AGING_DF = PH_AGING_DF[PH_AGING_DF['Provisioning Completed'] != 'Yes'] 
+    PH_AGING_DF = PH_AGING_DF[PH_AGING_DF['Provisioning Completed'] != 'NA']
+    
+    # Also need to convert columns New, Booking Complete, Prov In Progress, and Prov Errors to ints
+    PH_AGING_DF['New'] = PH_AGING_DF.New.astype('Int64')
+    PH_AGING_DF['Booking Complete'] = PH_AGING_DF['Booking Complete'].astype('Int64')
+    PH_AGING_DF['Provisioning in Progress'] = PH_AGING_DF['Provisioning in Progress'].astype('Int64')
+    PH_AGING_DF['Provisioning Error'] = PH_AGING_DF['Provisioning Error'].astype('Int64')
+    
+    # Join the PH Status dtaframe columns to the PH Aging dataframe for better 
+    PH_AGING_DF = pd.merge(PH_AGING_DF, JOIN, on='Sales Doc.', how='left') 
 
-    # Change these columns to datetime objects
+    # # Change these columns to datetime objects
     today = pd.Timestamp('today').floor('D')
-    PH_AGING_DF['Create Date(ZCC)'] = pd.to_datetime(PH_AGING_DF['Create Date(ZCC)'])
     PH_AGING_DF['Contract Start Date'] = pd.to_datetime(PH_AGING_DF['Contract Start Date'])
+    PH_AGING_DF['Create Date(ZCC)'] = pd.to_datetime(PH_AGING_DF['Create Date(ZCC)'])
     PH_AGING_DF['Create Date(ZAV)'] = pd.to_datetime(PH_AGING_DF['Create Date(ZAV)'])
     
     # Create dataframes for ZAV User Status equals New, Booking Complete, Prov in Porgress, or Prov Error orders
-    NEW = PH_AGING_DF[PH_AGING_DF['ZAV User Status'] == 'New']
-    BOOKING_COMPLETE = PH_AGING_DF[PH_AGING_DF['ZAV User Status'] == 'Booking Complete']
-    PROV_IN_PROGRESS = PH_AGING_DF[PH_AGING_DF['ZAV User Status'] == 'Provisioning in Progress']
-    PROVIONING_ERROR = PH_AGING_DF[PH_AGING_DF['ZAV User Status'] == 'Provisioning Error']
+    NEW = PH_AGING_DF[PH_AGING_DF['New'] > 0]
+    BOOKING_COMPLETE = PH_AGING_DF[PH_AGING_DF['Booking Complete'] > 0]
+    PROV_IN_PROGRESS = PH_AGING_DF[PH_AGING_DF['Provisioning in Progress'] > 0]
+    PROVIONING_ERROR = PH_AGING_DF[PH_AGING_DF['Provisioning Error'] > 0]
+
+   
 
     # Add notes to Booking Complete dataframe
     BOOKING_COMPLETE['Notes'] = np.where((BOOKING_COMPLETE['Create Date(ZAV)'] == today) , "Created Today",  
@@ -304,41 +314,29 @@ def ph_aging_dataframe(FILEPATH, PH_AGING, JOIN):
                     np.where((PROV_IN_PROGRESS['Header Block'] == 'PP : Provisioning Pending') , 'On Header Block', 
                     '')))))) 
     
-
-    # Drop anything that is New and Create Date is less than today
-    PH_AGING_DF.drop(PH_AGING_DF[(PH_AGING_DF['ZAV User Status'] == 'New')  & (PH_AGING_DF['Create Date(ZCC)'].dt.date < today)].index, inplace=True) 
     
-    # Drop anything that is Booking Complete and Waiting on PO or Provisioning Pending
-    PH_AGING_DF.drop(PH_AGING_DF[(PH_AGING_DF['ZAV User Status'] == 'Booking Complete')  & (PH_AGING_DF['Header Block'] != 'ZH : Waiting on PO')].index, inplace=True) 
-    PH_AGING_DF.drop(PH_AGING_DF[(PH_AGING_DF['ZAV User Status'] == 'Booking Complete')  & (PH_AGING_DF['Header Block'] != 'PP : Provisioning Pending')].index, inplace=True) 
-    
-    # Drop anything that is Provisioning in Progress and Create Date less than today and Contract Start date less than today 
-    PH_AGING_DF.drop(PH_AGING_DF[(PH_AGING_DF['ZAV User Status'] == 'Provisioning in Progress')  & (PH_AGING_DF['Create Date(ZCC)'].dt.date < today)].index, inplace=True) 
-    PH_AGING_DF.drop(PH_AGING_DF[(PH_AGING_DF['ZAV User Status'] == 'Provisioning in Progress')  & (PH_AGING_DF['Contract Start Date'] < today)].index, inplace=True) 
-    
-    '''Find out why we do this? If its necessary, create the sales doc df in PH_Status and pass it in for merge'''
-    #PH_AGING_DF = pd.merge(SALES_DOC, PH_AGING_DF, on='Sales Doc.')
-
-    # Add a note for anything that is Waiting on PO or has a Future Start Date
-    PH_AGING_DF['Notes'] = np.where((PH_AGING_DF['Header Block'] == "ZH : Waiting on PO") , "Billing Block",   
-                 np.where((PH_AGING_DF['Contract Start Date'].dt.date > today) , 'Future Start Date',
-                  'Review'))   
-    
+    # Only take data where Opportunity ID_y is blank. Basically drop anything that matched on the join because 
+    # if there is a match that means it is already reviewed on the PH Status file
+    PH_AGING_DF = PH_AGING_DF[PH_AGING_DF['Opportunity ID_y'].isnull()]
 
     # Add a Notes column at index 0
     PH_AGING_DF.insert(loc=0, column='Review Comments', value='')
 
-    '''Might use this at a later date'''
-    # # This section reads in the notes from previous review file using Sales Doc as identifier
-    # AGING_COMMENTS = pd.read_excel(DIR + EXCEL, sheet_name='Aging Review') 
-    # AGING_COMMENTS = AGING_COMMENTS[['Review Comments', 'Sales Doc.']] # Take only the Notes and Source Transaction Id column
-    # PH_AGING_DF = pd.merge(PH_AGING_DF, AGING_COMMENTS, on='Sales Doc.', how='left') # Merge previous notes with new dataframe based on Source Transaction ID
+    # This section reads in the notes from previous review file using Sales Doc as identifier
+    AGING_COMMENTS = pd.read_excel(PROV_EXCEL, sheet_name='Aging Review') 
+    AGING_COMMENTS = AGING_COMMENTS[['Review Comments', 'Sales Doc.']] # Take only the Notes and Sales Doc column
+    # Convert Sales Doc. from object to number for the Join below
+    AGING_COMMENTS['Sales Doc.'] = pd.to_numeric(AGING_COMMENTS['Sales Doc.'])
+    PH_AGING_DF['Sales Doc.'] = pd.to_numeric(PH_AGING_DF['Sales Doc.']) 
+    # Join the status comments to the ph aging dataframe, dropping the duplicates from aging comments dataframe
+    PH_AGING_DF = PH_AGING_DF.merge(AGING_COMMENTS.drop_duplicates(subset=['Sales Doc.']), how='left')
+    # also worked but didn't drop duplciates
+    #PH_AGING_DF = pd.merge(PH_AGING_DF, AGING_COMMENTS, on='Sales Doc.', how='left') # Merge previous notes with new dataframe based on Source Transaction ID
     
 
     return BOOKING_COMPLETE, PROV_IN_PROGRESS, NEW, PROVIONING_ERROR, PH_AGING_DF
 
 ##############################################################################
-
 def bart_dataframe(FILENAME):
 
     BART_DF = pd.read_csv(FILENAME, skiprows=4, sep='|', engine='python')
@@ -449,8 +447,6 @@ def vuc_dataframe(FILENAME):
     except TypeError as e:
         print(e)
 
-
-
     return V_UC_DF, effected_orders
 
 ##############################################################################
@@ -468,18 +464,13 @@ def p_status_dataframe(FILENAME):
         cols = [c for c in P_STATUS_DF.columns if c.lower()[:7] != 'unnamed'] # drops the empty unnamed columns
         P_STATUS_DF = P_STATUS_DF[cols]
         P_STATUS_DF.drop([0, 0], inplace=True) # Drop first empty rows
-        #P_STATUS_DF = P_STATUS_DF[:-1] # Drop last empty row
+        P_STATUS_DF = P_STATUS_DF[:-1] # Drop last empty row
         P_STATUS_DF.rename(columns=lambda x: x.strip(), inplace=True) #Strip whitespace from column headers
         #Create subset dataframe with order number and item number for emailing to the user
         effected_orders = P_STATUS_DF['Sales Document']
-        # Convert Sales Doc and Item# to int
-        effected_orders['Sales Document'] = effected_orders['Sales Document'].astype('Int64')
-        #effected_orders = effected_orders.astype({'Sales Document': 'Int64'})
-        # Drop last row as it is just dashes (----)
-        effected_orders = effected_orders[:-1]
-
+        # Convert Sales Doc to int
+        effected_orders = effected_orders.astype({'Sales Document': 'Int64'})
 
     return P_STATUS_DF, effected_orders
 
 ##############################################################################
-

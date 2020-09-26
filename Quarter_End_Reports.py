@@ -103,15 +103,15 @@ def run_sap_reports():
     call_load_to_pandas()
 
 ###############################################################################################################################
-def archive_reports(path, archive):
+def archive_reports(src, archive):
 
     # Datetime formatting for apending to archived file
     now = datetime.datetime.now().time()
     time = now.strftime("%f")
 
     # set source path and take filename from path
-    src = path
-    file_name = os.path.basename(path)
+    #src = path
+    file_name = os.path.basename(src)
 
     try:
         # copy file to archive folder
@@ -169,7 +169,7 @@ def run_provisioning_reports():
     # PH Status Report
     print('Loading Provisioning Status report...')
     try:
-        ph_status_returns = ltp.ph_status_dataframe(Dir.downloads_folder, Dir.prov_excel, Dir.ph_status_file)
+        ph_status_returns = ltp.ph_status_dataframe(Dir.prov_excel, Dir.ph_status_file)
         ph_status_dataframes = ph_status_returns[:5]
         JOIN = ph_status_returns[5]
     except Exception as e:
@@ -179,7 +179,7 @@ def run_provisioning_reports():
     # PH Aging Report
     try:
         print('Loading Provisioning Aging report...')
-        ph_aging_dataframes = ltp.ph_aging_dataframe(Dir.downloads_folder, Dir.ph_aging_file, JOIN)
+        ph_aging_dataframes = ltp.ph_aging_dataframe(Dir.prov_excel, Dir.ph_aging_file, JOIN)
     except Exception as e:
         input('Error encountered loading PH Aging dataframe.\n' + str(e))
         exit()
@@ -217,7 +217,7 @@ def call_load_to_pandas():
     # PH Status Report
     print('Loading Provisioning Status report...')
     try:
-        ph_status_returns = ltp.ph_status_dataframe(Dir.downloads_folder, Dir.prov_excel, Dir.ph_status_file)
+        ph_status_returns = ltp.ph_status_dataframe(Dir.prov_excel, Dir.ph_status_file)
         ph_status_dataframes = ph_status_returns[:5]
         JOIN = ph_status_returns[5]
     except Exception as e:
@@ -227,7 +227,7 @@ def call_load_to_pandas():
     # PH Aging Report
     try:
         print('Loading Provisioning Aging report...')
-        ph_aging_dataframes = ltp.ph_aging_dataframe(Dir.downloads_folder, Dir.ph_aging_file, JOIN)
+        ph_aging_dataframes = ltp.ph_aging_dataframe(Dir.prov_excel, Dir.ph_aging_file, JOIN)
     except Exception as e:
         input('Error encountered loading PH Aging dataframe.\n' + str(e))
         exit()
@@ -294,7 +294,7 @@ def call_load_to_pandas():
         input('Error encountered loading VUC dataframe.\n' + str(e))
         exit()
 
-    # Create dataframe for the ZISXERROR Report by calling the LoadToPandas fucntion 
+    # Create dataframe for the ZISXERROR Report by calling the LoadToPandas function 
     print('Loading ZISXERROR report...')
     try:
         zisxerror_df, zisxerror_orders = ltp.zisexerror_dataframe(Dir.zisxerror_file) 
@@ -303,7 +303,7 @@ def call_load_to_pandas():
         input('Error encountered loading ZISXERROR dataframe.\n' + str(e))
         exit()
 
-     # Create dataframe for the ZISXERROR Report by calling the LoadToPandas fucntion 
+     # Create dataframe for the ZISXERROR Report by calling the LoadToPandas function 
     print('Loading P_Status report...')
     try:
         p_status_df, p_status_order = ltp.p_status_dataframe(Dir.p_status_file) 
@@ -343,7 +343,7 @@ def call_load_to_pandas():
 ###########################################################################
 def send_emails(metrics_for_email):
 
-    ldap = 'grwillia'
+    #ldap = 'grwillia'
     credit_hold_file = Dir.credit_hold_file
     provisioning_file = Dir.prov_excel
     
