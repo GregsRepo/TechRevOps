@@ -29,6 +29,8 @@ p_status_file = downloads_folder + 'P_Status_Report.txt'
 # path for attaching files to e-mail. Also used for archiving
 credit_hold_file = zaci_folder + 'Credit_Hold.xlsx'
 prov_excel = provisioning_folder + "Provisioning_Report.xlsx"
+#prov_status = provisioning_folder + "Provisioning_Status_Report.xlsx"
+#prov_aging = provisioning_folder + "Provisioning_Aging_Report.xlsx"
 zaci_excel = zaci_folder + "ZACI_Report.xlsx"
 
 
