@@ -177,7 +177,6 @@ def ph_status_dataframe(PROV_EXCEL, PH_STATUS):
 
     # Trim whitespace from all cells
     PH_STATUS_DF = PH_STATUS_DF.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
-    print('Original file: ', PH_STATUS_DF.shape)
 
     # Filter out rejected orders. Used 'ject' becuase we can have mixture of lower/upper case as well as ZAV Rejected
     PH_STATUS_DF = PH_STATUS_DF[~PH_STATUS_DF['Opportunity ID'].str.contains("ject", na=False)]
@@ -185,7 +184,6 @@ def ph_status_dataframe(PROV_EXCEL, PH_STATUS):
 
     # Filter out User Status = Canceled
     PH_STATUS_DF = PH_STATUS_DF[~PH_STATUS_DF['User Status'].str.contains("Canceled", na=False)]
-    print('Removed rejected and canceled orders: ', PH_STATUS_DF.shape)
 
     # Create new dataframe at this point for joining with Aging
     JOIN = PH_STATUS_DF[['Sales Doc.', 'Opportunity ID', 'ZAV RFP Date', 'ZAV User Status', 'Created On', 'Header Block', 
@@ -221,22 +219,28 @@ def ph_status_dataframe(PROV_EXCEL, PH_STATUS):
                                 np.where((PROV_IN_PROGRESS['Header Block'] == 'PP : Provisioning Pending') , 'On Header Block', 
                                 '')))
 
-    
     # Drop Booking Complete items that are also on PO Block
     PH_STATUS_DF.drop(PH_STATUS_DF[(PH_STATUS_DF['ZAV User Status'] == 'Booking Complete')  & (PH_STATUS_DF['Header Block'] != 'ZH : Waiting on PO')].index, inplace=True) 
     
+    #Rename Notes to Review Comments
+    PH_STATUS_DF = PH_STATUS_DF.rename(columns = {'Notes' : 'Review Comments'})
     # Add notes to PH Status dataframe
-    PH_STATUS_DF['Notes'] = np.where((PH_STATUS_DF['Contract Start Date'] > today) , "Future Start Date", 'Review')
+    PH_STATUS_DF['Review Comments'] = np.where((PH_STATUS_DF['Contract Start Date'] > today) , "Future Start Date", 'Review')
 
     # This section reads in the notes from previous review file using Sales Doc as identifier
     STATUS_COMMENTS = pd.read_excel(PROV_EXCEL, sheet_name='Status Review') 
     STATUS_COMMENTS = STATUS_COMMENTS[['Review Comments', 'Sales Doc.']] 
+    STATUS_COMMENTS = STATUS_COMMENTS.dropna() # drop rows were there are missing values
     # Convert Sales Doc. from object to number for the Join below
     STATUS_COMMENTS['Sales Doc.'] = pd.to_numeric(STATUS_COMMENTS['Sales Doc.'])
     PH_STATUS_DF['Sales Doc.'] = pd.to_numeric(PH_STATUS_DF['Sales Doc.']) 
     # Join the status comments to the ph status dataframe, dropping the duplicates from status comments dataframe
     PH_STATUS_DF = PH_STATUS_DF.merge(STATUS_COMMENTS.drop_duplicates(subset=['Sales Doc.']), how='left')
     
+    # Move Review Comments column to first index
+    # col_name="Review Comments"
+    # first_col = PH_STATUS_DF.pop(col_name)
+    # PH_STATUS_DF.insert(0, col_name, first_col)
 
     return BOOKING_COMPLETE, PROV_IN_PROGRESS, NEW, PROVIONING_ERROR, PH_STATUS_DF, JOIN
 
@@ -321,17 +325,19 @@ def ph_aging_dataframe(PROV_EXCEL, PH_AGING, JOIN):
 
     # Add a Notes column at index 0
     PH_AGING_DF.insert(loc=0, column='Review Comments', value='')
+    # Add notes to PH Status dataframe
+    PH_AGING_DF['Review Comments'] = np.where((PH_AGING_DF['Contract Start Date'] > today) , "Future Start Date", 'Review')
+
 
     # This section reads in the notes from previous review file using Sales Doc as identifier
     AGING_COMMENTS = pd.read_excel(PROV_EXCEL, sheet_name='Aging Review') 
     AGING_COMMENTS = AGING_COMMENTS[['Review Comments', 'Sales Doc.']] # Take only the Notes and Sales Doc column
+    AGING_COMMENTS = AGING_COMMENTS.dropna() # drop rows were there are missing values
     # Convert Sales Doc. from object to number for the Join below
     AGING_COMMENTS['Sales Doc.'] = pd.to_numeric(AGING_COMMENTS['Sales Doc.'])
     PH_AGING_DF['Sales Doc.'] = pd.to_numeric(PH_AGING_DF['Sales Doc.']) 
     # Join the status comments to the ph aging dataframe, dropping the duplicates from aging comments dataframe
     PH_AGING_DF = PH_AGING_DF.merge(AGING_COMMENTS.drop_duplicates(subset=['Sales Doc.']), how='left')
-    # also worked but didn't drop duplciates
-    #PH_AGING_DF = pd.merge(PH_AGING_DF, AGING_COMMENTS, on='Sales Doc.', how='left') # Merge previous notes with new dataframe based on Source Transaction ID
     
 
     return BOOKING_COMPLETE, PROV_IN_PROGRESS, NEW, PROVIONING_ERROR, PH_AGING_DF
